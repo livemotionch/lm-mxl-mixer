@@ -1,0 +1,44 @@
+[package]
+name = "lm-mxl-mixer"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.97"
+description = "CPU vision mixer for MXL"
+license = "MIT"
+publish = false
+
+[lib]
+name = "lm_mxl_mixer"
+path = "src/lib.rs"
+
+[[bin]]
+name = "lm-mxl-mixer"
+path = "src/main.rs"
+
+[dependencies]
+axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "tokio", "query", "ws"] }
+libc = "0.2"
+# Official MXL Rust bindings at the platform pin (release/v1.1 218ddaa), as the
+# mxl-stack functions use them. libmxl itself is loaded at run time
+# (scripts/build-mxl.sh builds it with fabrics off).
+mxl = { git = "https://github.com/dmf-mxl/mxl", rev = "218ddaa0a08c12ffe75fc475ae65aa3d9eef16d7", features = ["mxl-not-built"] }
+mxl-sys = { git = "https://github.com/dmf-mxl/mxl", rev = "218ddaa0a08c12ffe75fc475ae65aa3d9eef16d7", features = ["mxl-not-built"] }
+mxl-nmos = { git = "https://github.com/LeeO86/mxl-nmos", tag = "v0.1.1" }
+reqwest = { version = "0.13", default-features = false, features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+tokio = { version = "1.52", features = ["macros", "rt-multi-thread", "signal", "time", "sync", "net", "process", "io-util"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1.23", features = ["v4", "v5", "serde"] }
+
+[dev-dependencies]
+tempfile = "3.27"
+tower = { version = "0.5", features = ["util"] }
+
+[profile.release]
+debug = 1
+
+[profile.test]
+opt-level = 2

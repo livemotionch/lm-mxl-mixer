@@ -1,0 +1,59 @@
+# lm-mxl-mixer next to mxl-stack's compose/single-host example: an override
+# file (Compose anchors don't cross files, so the NMOS and preview settings
+# are spelled out). From compose/single-host of mxl-stack:
+#
+#   docker compose -f compose.yaml -f /path/to/lm-mxl-mixer/deploy/compose.single-host.yaml up -d vision-mixer
+#
+# Port plan (host network, one port space with the stack):
+#   web/API/metrics 8180, NMOS 3332 (both free in the stack's plan: 8170 scopes,
+#   8190 audio mixer; NMOS 3322 scopes, 3342 audio mixer). TSL is sent, not
+#   received (TSL_TARGETS or the API), so no listening port.
+# The image is built from this repository (docker/Dockerfile), not pulled.
+
+services:
+  vision-mixer:
+    image: ${LM_MXL_MIXER_IMAGE:-lm-mxl-mixer:dev}
+    build:
+      context: ${LM_MXL_MIXER_SRC:-../../../lm-mxl-mixer}
+      dockerfile: docker/Dockerfile
+    network_mode: host
+    user: "1000:1000"
+    init: true
+    depends_on: [registry, mediamtx]
+    environment:
+      NMOS_REGISTRY_ADDRESS: ${NMOS_REGISTRY_ADDRESS:-127.0.0.1}
+      NMOS_REGISTRY_PORT: ${NMOS_REGISTRY_PORT:-3210}
+      NMOS_QUERY_ADDRESS: ${NMOS_REGISTRY_ADDRESS:-127.0.0.1}
+      NMOS_QUERY_PORT: ${NMOS_QUERY_PORT:-3211}
+      NMOS_DNS_SD: "false"
+      NMOS_HOST_ADDRESS: ${HOST_IP:?set HOST_IP in .env}
+      NMOS_SEED: ${STACK_ID:-stack}-vision-mixer
+      NMOS_LABEL: Vision mixer
+      NMOS_PORT: "3332"
+      WEB_PORT: "8180"
+      MXL_DOMAIN_SCAN_PATH: /Volumes/mxl
+      MXL_OUTPUT_DOMAIN_DIR: /Volumes/mxl/vision-mixer
+      MXL_CLEANUP_ON_EXIT: "true"
+      SHUTDOWN_TIMEOUT_S: "10"
+      MIXER_FORMAT: ${VIDEO_FORMAT:-1080p50}
+      MIXER_INPUTS: "8"
+      MIXER_KEY_INPUTS: "2"
+      MIXER_MES: "1"
+      MIXER_LABEL_PREFIX: VM
+      MIXER_STATE_DIR: /config
+      PREVIEW_PUBLISH_URL: rtsp://127.0.0.1:8554
+      PREVIEW_PATH_PREFIX: ${STACK_ID:-stack}/vision-mixer
+      PREVIEW_WHEP_URL: ${PREVIEW_WHEP_URL:-http://${HOST_IP}:8889}
+      PREVIEW_HLS_URL: ${PREVIEW_HLS_URL:-http://${HOST_IP}:8888}
+      MEDIAMTX_API_URL: http://127.0.0.1:9997
+      # TSL_TARGETS: 192.0.2.40:8900
+    volumes:
+      - type: bind
+        source: ${MXL_ROOT:-/Volumes/mxl}
+        target: /Volumes/mxl
+      - vision-mixer-config:/config
+    # cpuset: "12-15"
+    restart: unless-stopped
+
+volumes:
+  vision-mixer-config:
